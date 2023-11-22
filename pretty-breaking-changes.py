@@ -4,8 +4,8 @@ import git
 import mistune
 import re
 
-repo_path = "/home/yo/src/liferay-portal"
-template_path = "/home/yo/projects/pretty-breaking-changes"
+repo_path = "/Users/marcoscastro/projects/liferay-portal"
+template_path = "/Users/marcoscastro/Downloads/pretty-breaking-changes"
 
 markdown = mistune.create_markdown(renderer='ast')
 
@@ -74,15 +74,20 @@ entire_output = entire_header
 
 for first_level_path in affected_file_paths_and_hashes:
     this_block = f'''
-    <h3>{first_level_path}</h3>
+    <div class="list-group mb-2">
+            <div class="list-group-header">
+                <div class="list-group-header-title">{first_level_path}</div>
+            </div>
     
-    <ul>
+    <ul class="list-group-item">
     '''
     
     for affected_file_path in affected_file_paths_and_hashes[first_level_path]:
         this_block += f'''
-            <li>
-                <h4 class="file-path">{affected_file_path}</h4>
+            <h4 class="file-path list-group-header bg-light h5">
+                <span class="text-truncate">{affected_file_path}</span>
+            </h4>
+                <li class="list-group-item mb-3">
         '''
         
         for hash in affected_file_paths_and_hashes[first_level_path][affected_file_path]:
@@ -102,6 +107,21 @@ for first_level_path in affected_file_paths_and_hashes:
                 <div class="see-more-section">
                     <h5 class="see-more-section-title">Where can I find more?</h5>
                     See <a href="https://liferay.atlassian.net/browse/{jira_ticket}">{jira_ticket}</a> {jira_ticket_title}
+                </div>
+
+                <div class="what-section">
+                    <div class="what-section-title">What has changed?</div>
+                    <small>{what_info}</small>
+                </div>
+                <div class="why-section">
+                    <div class="why-section-title">Why has it changed?</div>
+                    <small>{why_info}</small>
+                </div>
+                <div class="see-more-section">
+                    <div class="see-more-section-title">Where can I find more?</div>
+                    <small>
+                        See <a href="https://liferay.atlassian.net/browse/{jira_ticket}">{jira_ticket}</a> {jira_ticket_title}
+                    </small>
                 </div>
         '''.format(**info)
     
