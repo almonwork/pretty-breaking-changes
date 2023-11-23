@@ -39,9 +39,18 @@ var toogle_visible_file_paths = function (list) {
     }
     
     for (let i in list) {
-        file_path_elements_by_path[list[i]].style.display = "list-item"
+        file_path_elements_by_path[list[i]].style.display = ""
     }
 };
+
+var collapsibles = document.getElementsByClassName("collapsible"); 
+  
+for (i = 0; i < collapsibles.length; i++) {
+    collapsibles[i].addEventListener("click", function () {  
+        var content = this.nextElementSibling; 
+        content.classList.toggle("collapsed"); 
+    });
+}
 
 </script>
 

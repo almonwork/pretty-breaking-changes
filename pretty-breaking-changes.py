@@ -4,8 +4,8 @@ import git
 import mistune
 import re
 
-repo_path = "/Users/marcoscastro/projects/liferay-portal"
-template_path = "/Users/marcoscastro/Downloads/pretty-breaking-changes"
+repo_path = "/home/yo/src/liferay-portal"
+template_path = "/home/yo/projects/pretty-breaking-changes"
 
 markdown = mistune.create_markdown(renderer='ast')
 
@@ -52,7 +52,7 @@ for hash in breaking_changes_info_raw:
         first_level_path, _, remaining = remaining.partition('/')
         
     if len(remaining) == 0:
-        first_level_path = 'Other'
+        first_level_path = 'other'
         
     if not first_level_path in affected_file_paths_and_hashes:
         affected_file_paths_and_hashes[first_level_path] = {}
@@ -75,60 +75,53 @@ entire_output = entire_header
 for first_level_path in affected_file_paths_and_hashes:
     this_block = f'''
     <div class="list-group mb-2">
-            <div class="list-group-header">
-                <div class="list-group-header-title">{first_level_path}</div>
-            </div>
+        <div class="list-group-header collapsible" role="button" tabindex="0">
+            <div class="list-group-header-title">{first_level_path}</div><span>&#8595;</span>
+        </div>
     
-    <ul class="list-group-item">
+        <ul class="list-group-item list-unstyled collapsed">
     '''
     
     for affected_file_path in affected_file_paths_and_hashes[first_level_path]:
         this_block += f'''
-            <h4 class="file-path list-group-header bg-light h5">
-                <span class="text-truncate">{affected_file_path}</span>
-            </h4>
-                <li class="list-group-item mb-3">
+            <li class="mb-3">
+                <h4 class="file-path list-group-header bg-light h5">
+                    <span class="text-truncate">{affected_file_path}</span>
+                </h4>
+                
+                <ul>
         '''
         
         for hash in affected_file_paths_and_hashes[first_level_path][affected_file_path]:
-            # print(affected_file_paths_and_hashes[first_level_path][affected_file_path])
-            # print(breaking_changes_info_raw[hash])
             info = breaking_changes_info_raw[hash]
         
             this_block += '''
-                <div class="what-section">
-                    <h5 class="what-section-title">What has changed?</h5>
-                    {what_info}
-                </div>
-                <div class="why-section">
-                    <h5 class="why-section-title">Why has it changed?</h5>
-                    {why_info}
-                </div>
-                <div class="see-more-section">
-                    <h5 class="see-more-section-title">Where can I find more?</h5>
-                    See <a href="https://liferay.atlassian.net/browse/{jira_ticket}">{jira_ticket}</a> {jira_ticket_title}
-                </div>
+                <li class="list-group-item mb-3">
+                    <div class="what-section">
+                        <div class="what-section-title">What has changed?</div>
+                        <small>{what_info}</small>
+                    </div>
+                    <div class="why-section">
+                        <div class="why-section-title">Why has it changed?</div>
+                        <small>{why_info}</small>
+                    </div>
+                    <div class="see-more-section">
+                        <div class="see-more-section-title">Where can I find more?</div>
+                        <small>
+                            See <a href="https://liferay.atlassian.net/browse/{jira_ticket}">{jira_ticket}</a> {jira_ticket_title}
+                        </small>
+                    </div>
+                </li>
+            '''.format(**info)
 
-                <div class="what-section">
-                    <div class="what-section-title">What has changed?</div>
-                    <small>{what_info}</small>
-                </div>
-                <div class="why-section">
-                    <div class="why-section-title">Why has it changed?</div>
-                    <small>{why_info}</small>
-                </div>
-                <div class="see-more-section">
-                    <div class="see-more-section-title">Where can I find more?</div>
-                    <small>
-                        See <a href="https://liferay.atlassian.net/browse/{jira_ticket}">{jira_ticket}</a> {jira_ticket_title}
-                    </small>
-                </div>
-        '''.format(**info)
-    
+            
+        this_block += '''
+                </ul>
+            </li>
+        '''
+            
     this_block += '''
-        </li>
     </ul>
-    
     '''
     
     entire_output += this_block
