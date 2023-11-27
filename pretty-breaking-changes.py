@@ -9,14 +9,14 @@ template_path = "/home/yo/projects/pretty-breaking-changes"
 
 # markdown = mistune.create_markdown(renderer='ast')
 
-def get_end_of_block(lines, start_index, pattern):
+def get_end_of_block(lines, start_index, end_pattern):
     if start_index >= len(lines):
         return start_index
     
     end_of_block_index = start_index
     
     while end_of_block_index < len(lines):
-        if not lines[end_of_block_index].startswith(pattern):
+        if not lines[end_of_block_index].startswith(end_pattern):
             end_of_block_index += 1
         else:
             break
@@ -46,7 +46,13 @@ def dissect_commit_message(raw_commit_message):
         next_line_index = get_end_of_block(lines, previous_line_index, '----')
         # print(next_line_index)
         if next_line_index - previous_line_index > 1:
-            info = extract_breaking_change_info(lines[previous_line_index:next_line_index])
+            info = None
+            try:
+                info = extract_breaking_change_info(lines[previous_line_index:next_line_index])
+            except Exception as e:
+                print("unprocessable")
+                print(e)
+                print(lines)
             
             if info:
                 breaking_changes_info.append(info)
@@ -62,32 +68,40 @@ def extract_breaking_change_info(lines):
     # print(lines)
     breaking_change_info = {}
     
-    try:
-        what_line_index = get_end_of_block(lines, 1, "## What")
-        raw_what_header = lines[what_line_index]
-        _, _, breaking_change_info['affected_file_path'] = raw_what_header.partition('## What ')
-        
-        why_line_index = get_end_of_block(lines, what_line_index + 1, "## Why")
-        
-        breaking_change_info['what_info'] = "\n".join(lines[what_line_index + 1:why_line_index])
-        
-        alternatives_line_index = get_end_of_block(lines, why_line_index + 1, "## Alternatives")
-        
-        breaking_change_info['why_info'] = "\n".join(lines[why_line_index + 1: alternatives_line_index])
-        
-        if len(lines) >= alternatives_line_index:
-            breaking_change_info['alternatives'] = "\n".join(lines[alternatives_line_index + 1: len(lines)])
-                    
-    except Exception as e:
-        print(e)
-        print("unprocessable")
-        print(lines)
-        # print(raw_commit_message)
-        # print("--")
-        return None
+    what_line_index = get_end_of_block(lines, 1, "## What")
+    
+    if what_line_index >= len(lines): 
+        raise LookupError('"## What" not found')
+    
+    raw_what_header = lines[what_line_index]
+    _, _, breaking_change_info['affected_file_path'] = raw_what_header.partition('## What ')
+    
+    why_line_index = get_end_of_block(lines, what_line_index + 1, "## Why")
+    
+    if why_line_index >= len(lines):
+        raise LookupError('"## Why" not found')
+    
+    breaking_change_info['what_info'] = "\n".join(lines[what_line_index + 1:why_line_index])
+    
+    alternatives_line_index = get_end_of_block(lines, why_line_index + 1, "## Alternatives")
+    
+    breaking_change_info['why_info'] = "\n".join(lines[why_line_index + 1: alternatives_line_index])
+    
+    if len(lines) >= alternatives_line_index:
+        breaking_change_info['alternatives'] = "\n".join(lines[alternatives_line_index + 1: len(lines)])
     
     return breaking_change_info
 
+def get_first_level_path(file_path):
+    first_level_path, _, remaining = file_path.partition('/')
+    
+    if len(first_level_path) == 0:
+        first_level_path, _, remaining = remaining.partition('/')
+        
+    if len(remaining) == 0:
+        first_level_path = 'other'
+        
+    return first_level_path
 
 repo = git.Repo(repo_path)
 
@@ -110,13 +124,7 @@ for hash in breaking_changes_info_raw:
     for change in breaking_changes_info_raw[hash]:
         affected_file_path = change['affected_file_path']
         # print(affected_file_path)
-        first_level_path, _, remaining = affected_file_path.partition('/')
-        
-        if len(first_level_path) == 0:
-            first_level_path, _, remaining = remaining.partition('/')
-            
-        if len(remaining) == 0:
-            first_level_path = 'other'
+        first_level_path = get_first_level_path(affected_file_path)
             
         if not first_level_path in affected_file_paths_and_hashes:
             affected_file_paths_and_hashes[first_level_path] = {}
