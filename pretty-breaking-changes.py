@@ -168,7 +168,17 @@ for first_level_path in affected_file_paths_and_hashes:
                     <div class="why-section">
                         <div class="why-section-title">Why has it changed?</div>
                         <small>{why_info}</small>
-                    </div>
+                    </div>'''.format(**change)
+                
+            this_block += '''
+                    <div class="alternatives-section">
+                        <div class="alternatives-section-title">Is there any alternative?</div>
+                        <small>
+                            {alternatives}
+                        </small>
+                    </div>'''.format(**change)
+                
+            this_block += '''
                     <div class="see-more-section">
                         <div class="see-more-section-title">Where can I find more?</div>
                         <small>
