@@ -13,16 +13,20 @@ amendments_file_path = repo_path + "/readme/BREAKING_CHANGES_AMENDMENTS.markdown
 
 template_path = "/home/yo/projects/pretty-breaking-changes"
 
+breaking_change_report_keyword = "# breaking"
+
 markdown = mistune.create_markdown(renderer='ast')
 
 def get_end_of_block(lines, start_index, end_pattern):
     if start_index >= len(lines):
         return start_index
     
+    end_pattern_lowercase = end_pattern.lower()
+    
     end_of_block_index = start_index
     
     while end_of_block_index < len(lines):
-        if not lines[end_of_block_index].startswith(end_pattern):
+        if not lines[end_of_block_index].lower().startswith(end_pattern_lowercase):
             end_of_block_index += 1
         else:
             break
@@ -36,7 +40,7 @@ def dissect_commit_message(raw_commit_message):
     
     lines = raw_commit_message.split('\n')
     
-    raw_jira_info_block_line_index = get_end_of_block(lines, 1, '# breaking')
+    raw_jira_info_block_line_index = get_end_of_block(lines, 1, breaking_change_report_keyword)
     
     i = 0
     while i < raw_jira_info_block_line_index:
@@ -45,16 +49,26 @@ def dissect_commit_message(raw_commit_message):
             break
         i += 1
     
-    previous_line_index = raw_jira_info_block_line_index
+    block_start_line_index = raw_jira_info_block_line_index
     
-    while previous_line_index < len(lines):
-        # print(str(previous_line_index) + " " + str(len(lines)))
-        next_line_index = get_end_of_block(lines, previous_line_index, '----')
+    while block_start_line_index < len(lines):
+        # print(str(block_start_line_index) + " " + str(len(lines)))
+        next_line_index = get_end_of_block(lines, block_start_line_index, '----')
+        
+        if next_line_index == len(lines):
+            next_line_index = get_end_of_block(lines, block_start_line_index, breaking_change_report_keyword)
+            
         # print(next_line_index)
-        if next_line_index - previous_line_index > 1:
+        if next_line_index - block_start_line_index > 1:
             info = None
+            
+            if lines[next_line_index - 1] == '----':
+                block_end_line_index = next_line_index - 1
+            else:
+                block_end_line_index = next_line_index
+            
             try:
-                info = extract_breaking_change_info(lines[previous_line_index:next_line_index])
+                info = extract_breaking_change_info(lines[block_start_line_index:block_end_line_index])
             except Exception as e:
                 print("unprocessable")
                 print(e)
@@ -65,7 +79,7 @@ def dissect_commit_message(raw_commit_message):
                 breaking_changes_info[-1]['jira_ticket'] = jira_ticket
                 breaking_changes_info[-1]['jira_ticket_title'] = jira_ticket_title
                 
-        previous_line_index = next_line_index + 1
+        block_start_line_index = next_line_index + 1
         
     return breaking_changes_info
     
@@ -74,13 +88,12 @@ def extract_breaking_change_info(lines):
     # print(lines)
     breaking_change_info = {}
     
-    what_line_index = get_end_of_block(lines, 1, "## What")
+    what_line_index = get_end_of_block(lines, 0, "## What")
     
     if what_line_index >= len(lines): 
         raise LookupError('"## What" not found')
     
-    raw_what_header = lines[what_line_index]
-    _, _, breaking_change_info['affected_file_path'] = raw_what_header.partition('## What ')
+    breaking_change_info['affected_file_path'] = get_affected_file_path(lines[what_line_index])
     
     why_line_index = get_end_of_block(lines, what_line_index + 1, "## Why")
     
@@ -93,10 +106,18 @@ def extract_breaking_change_info(lines):
     
     breaking_change_info['why_info'] = "\n".join(lines[why_line_index + 1: alternatives_line_index])
     
-    if len(lines) >= alternatives_line_index:
+    if len(lines) > alternatives_line_index:
         breaking_change_info['alternatives'] = "\n".join(lines[alternatives_line_index + 1: len(lines)])
     
     return breaking_change_info
+
+def get_affected_file_path(raw_what_header):
+    _, _, affected_file_path = raw_what_header.partition('## What ')
+    
+    if affected_file_path == "":
+        _, _, affected_file_path = raw_what_header.partition('## what ')
+        
+    return affected_file_path
 
 def get_first_level_path(file_path):
     first_level_path, _, remaining = file_path.partition('/')
@@ -214,7 +235,8 @@ for first_level_path in affected_file_paths_and_hashes:
                         <small>{why_info}</small>
                     </div>'''.format(**change)
                 
-            this_block += '''
+            if 'alternatives' in change:
+                this_block += '''
                     <div class="alternatives-section">
                         <div class="alternatives-section-title">Is there any alternative?</div>
                         <small>
