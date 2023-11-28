@@ -1,13 +1,19 @@
 #! /usr/bin/python3
 
 import git
-# import mistune
+import mistune
 # import re
 
-repo_path = "/home/yo/src/liferay-portal"
+repo_path = "/home/yo/src/liferay-portal-ee"
+
+start_hash = "cc606f7664a2dab29e08312a225899f140233088"
+end_hash = "f63d698232b7b620536bb32f854286b132fcc07a"
+
+amendments_file_path = repo_path + "/readme/BREAKING_CHANGES_AMENDMENTS.markdown"
+
 template_path = "/home/yo/projects/pretty-breaking-changes"
 
-# markdown = mistune.create_markdown(renderer='ast')
+markdown = mistune.create_markdown(renderer='ast')
 
 def get_end_of_block(lines, start_index, end_pattern):
     if start_index >= len(lines):
@@ -103,25 +109,55 @@ def get_first_level_path(file_path):
         
     return first_level_path
 
-repo = git.Repo(repo_path)
+liferay_portal_ee_repo = git.Repo(repo_path)
 
 print("Retrieving git info ...")
 
-of_interest = repo.git.log("--grep", "breaking_change_report", "--pretty=format:%H")
+of_interest = liferay_portal_ee_repo.git.log(start_hash + ".." + end_hash, "--grep", "# breaking", "--pretty=format:%H")
+# of_interest = liferay_portal_ee_repo.git.log("--grep", "breaking_change_report", "--pretty=format:%H")
 
 print("Processing git info ...")
 
 individual_commit_hashes = of_interest.split('\n')
 
-breaking_changes_info_raw = {h:result for h in individual_commit_hashes if (result := dissect_commit_message(repo.commit(h).message))}
+breaking_changes_info = {h:result for h in individual_commit_hashes if (result := dissect_commit_message(liferay_portal_ee_repo.commit(h).message))}
+
+amendments = ""
+
+with open(amendments_file_path) as f:
+    amendments = f.read()
+
+parsed = markdown.parse(amendments)
+interesting_indexes = [(i, type_of) for i in range(len(parsed)) if (type_of := parsed[i]['type']) == 'heading' or type_of == 'block_code']
+
+filtered_indexes = {}
+
+i = 0
+while i < len(interesting_indexes) - 2:
+    if interesting_indexes[i][1] == 'heading' and interesting_indexes[i + 1][1] == 'block_code':
+        hash = parsed[interesting_indexes[i][0]]['children'][0]['text']
+        amended_message = parsed[interesting_indexes[i + 1][0]]['text']
+        breaking_changes_info[hash] = dissect_commit_message(amended_message)
+        
+        i += 2
+    else:
+        i += 1
+    
+        
+    
+
+# for i in range(len(heading_indexes)):
+#     hash = parsed[heading_indexes[i]]['children'][0]['text']
+#     amended_message = parsed[block_code_indexes[i]]['text']
+#     breaking_changes_info[hash] = dissect_commit_message(amended_message)
 
 affected_file_paths_and_hashes = {}
 
-for hash in breaking_changes_info_raw:
+for hash in breaking_changes_info:
     # print(hash)
-    # print(breaking_changes_info_raw[hash]['affected_file_path'])
+    # print(breaking_changes_info[hash]['affected_file_path'])
     
-    for change in breaking_changes_info_raw[hash]:
+    for change in breaking_changes_info[hash]:
         affected_file_path = change['affected_file_path']
         # print(affected_file_path)
         first_level_path = get_first_level_path(affected_file_path)
