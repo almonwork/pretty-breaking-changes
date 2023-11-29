@@ -151,8 +151,6 @@ with open(amendments_file_path) as f:
 parsed = markdown.parse(amendments)
 interesting_indexes = [(i, type_of) for i in range(len(parsed)) if (type_of := parsed[i]['type']) == 'heading' or type_of == 'block_code']
 
-filtered_indexes = {}
-
 i = 0
 while i < len(interesting_indexes) - 2:
     if interesting_indexes[i][1] == 'heading' and interesting_indexes[i + 1][1] == 'block_code':
@@ -164,13 +162,6 @@ while i < len(interesting_indexes) - 2:
     else:
         i += 1
     
-        
-    
-
-# for i in range(len(heading_indexes)):
-#     hash = parsed[heading_indexes[i]]['children'][0]['text']
-#     amended_message = parsed[block_code_indexes[i]]['text']
-#     breaking_changes_info[hash] = dissect_commit_message(amended_message)
 
 affected_file_paths_and_hashes = {}
 
