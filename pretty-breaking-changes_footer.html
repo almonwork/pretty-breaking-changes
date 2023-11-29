@@ -5,11 +5,11 @@
 var keyupStack = [];
 var to_check = document.getElementById('to_check');
 
-file_path_elements_by_path = {}
+var file_path_elements_by_path = {}
 
-file_path_elements = document.getElementsByClassName("file-path")
+var file_path_elements = document.getElementsByClassName("file-path")
 for (i = 0; i < file_path_elements.length; i++) {
-    element = file_path_elements[i]
+    var element = file_path_elements[i]
     file_path_elements_by_path[element.textContent] = element.parentElement
 }
 
