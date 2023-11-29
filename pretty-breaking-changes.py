@@ -216,9 +216,9 @@ for first_level_path in affected_file_paths_and_hashes:
     for affected_file_path in affected_file_paths_and_hashes[first_level_path]:
         this_block += f'''
             <li class="mb-3">
-                <h4 class="file-path list-group-header bg-light h5">
+                <h3 class="file-path list-group-header bg-light h5">
                     <span class="text-truncate">{affected_file_path}</span>
-                </h4>
+                </h3>
                 
                 <ul>
         '''
