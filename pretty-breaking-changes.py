@@ -152,7 +152,7 @@ parsed = markdown.parse(amendments)
 interesting_indexes = [(i, type_of) for i in range(len(parsed)) if (type_of := parsed[i]['type']) == 'heading' or type_of == 'block_code']
 
 i = 0
-while i < len(interesting_indexes) - 2:
+while i <= len(interesting_indexes) - 2:
     if interesting_indexes[i][1] == 'heading' and interesting_indexes[i + 1][1] == 'block_code':
         hash = parsed[interesting_indexes[i][0]]['children'][0]['text']
         amended_message = parsed[interesting_indexes[i + 1][0]]['text']
