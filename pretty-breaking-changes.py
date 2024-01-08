@@ -155,8 +155,10 @@ i = 0
 while i <= len(interesting_indexes) - 2:
     if interesting_indexes[i][1] == 'heading' and interesting_indexes[i + 1][1] == 'block_code':
         hash = parsed[interesting_indexes[i][0]]['children'][0]['text']
-        amended_message = parsed[interesting_indexes[i + 1][0]]['text']
-        breaking_changes_info[hash] = dissect_commit_message(amended_message)
+        
+        if hash in breaking_changes_info or (liferay_portal_ee_repo.is_ancestor(start_hash, hash) and not liferay_portal_ee_repo.is_ancestor(end_hash, hash)):
+            amended_message = parsed[interesting_indexes[i + 1][0]]['text']
+            breaking_changes_info[hash] = dissect_commit_message(amended_message)
         
         i += 2
     else:
