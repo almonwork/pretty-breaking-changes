@@ -12,8 +12,6 @@ end_hash = "f63d698232b7b620536bb32f854286b132fcc07a"
 
 amendments_file_path = repo_path + "/readme/BREAKING_CHANGES_AMENDMENTS.markdown"
 
-template_path = "/home/yo/projects/pretty-breaking-changes"
-
 breaking_change_report_keyword = "# breaking"
 
 markdown = mistune.create_markdown(renderer='ast')
