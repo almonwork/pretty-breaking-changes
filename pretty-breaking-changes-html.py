@@ -6,8 +6,8 @@ import mistune
 
 repo_path = "/home/yo/src/liferay-portal-ee"
 
-start_hash = "cc606f7664a2dab29e08312a225899f140233088"
-end_hash = "f63d698232b7b620536bb32f854286b132fcc07a"
+start_hash = "f63d698232b7b620536bb32f854286b132fcc07a"
+end_hash = "4a2e75e4e6fd4c225db62f303ccc33cdd1782ba4"
 
 amendments_file_path = repo_path + "/readme/BREAKING_CHANGES_AMENDMENTS.markdown"
 
