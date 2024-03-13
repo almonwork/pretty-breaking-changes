@@ -149,7 +149,8 @@ with open(amendments_file_path) as f:
     amendments = f.read()
 
 parsed = markdown.parse(amendments)
-interesting_indexes = [(i, type_of) for i in range(len(parsed)) if (type_of := parsed[i]['type']) == 'heading' or type_of == 'block_code']
+
+interesting_indexes = [(i, type_of) for i in range(len(parsed)) if (type_of := parsed[0][i]['type']) == 'heading' or type_of == 'block_code']
 
 i = 0
 while i <= len(interesting_indexes) - 2:
