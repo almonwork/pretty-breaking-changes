@@ -7,16 +7,18 @@ import os
 
 repo_path = "/home/yo/src/liferay-portal-ee"
 
-start_hash = "cc606f7664a2dab29e08312a225899f140233088"
-end_hash = "f63d698232b7b620536bb32f854286b132fcc07a"
+start_hash = "f63d698232b7b620536bb32f854286b132fcc07a"
+end_hash = "4a2e75e4e6fd4c225db62f303ccc33cdd1782ba4"
 
 amendments_file_path = repo_path + "/readme/BREAKING_CHANGES_AMENDMENTS.markdown"
+
+template_path = "/home/yo/projects/pretty-breaking-changes"
 
 breaking_change_report_keyword = "# breaking"
 
 markdown = mistune.create_markdown(renderer='ast')
 
-def get_end_of_block(lines, start_index, end_pattern):
+def get_end_of_block_using_pattern(lines, start_index, end_pattern):
     if start_index >= len(lines):
         return start_index
     
@@ -32,14 +34,31 @@ def get_end_of_block(lines, start_index, end_pattern):
     
     # print(end_of_block_index)
     return end_of_block_index
+         
+def get_end_of_block(lines, start_index):
+    next_line_index = get_end_of_block_using_pattern(lines, start_index, '----')
+    
+    if next_line_index == len(lines):
+        next_line_index = get_end_of_block_using_pattern(lines, start_index, breaking_change_report_keyword)
+        
+    return next_line_index
             
+         
+def is_empty_block(lines):
+    result = True
+    
+    for line in lines:
+        if line.strip():
+            return False
+    
+    return result
 
 def dissect_commit_message(raw_commit_message):
     breaking_changes_info = []
     
     lines = raw_commit_message.split('\n')
     
-    raw_jira_info_block_line_index = get_end_of_block(lines, 1, breaking_change_report_keyword)
+    raw_jira_info_block_line_index = get_end_of_block_using_pattern(lines, 1, breaking_change_report_keyword)
     
     i = 0
     while i < raw_jira_info_block_line_index:
@@ -52,13 +71,10 @@ def dissect_commit_message(raw_commit_message):
     
     while block_start_line_index < len(lines):
         # print(str(block_start_line_index) + " " + str(len(lines)))
-        next_line_index = get_end_of_block(lines, block_start_line_index, '----')
+        next_line_index = get_end_of_block(lines, block_start_line_index)
         
-        if next_line_index == len(lines):
-            next_line_index = get_end_of_block(lines, block_start_line_index, breaking_change_report_keyword)
-            
         # print(next_line_index)
-        if next_line_index - block_start_line_index > 1:
+        if next_line_index - block_start_line_index > 1 and not is_empty_block(lines[block_start_line_index:next_line_index]):
             info = None
             
             if lines[next_line_index - 1] == '----':
@@ -72,6 +88,8 @@ def dissect_commit_message(raw_commit_message):
                 print("unprocessable")
                 print(e)
                 print(lines)
+                print("Range considered: " + str(block_start_line_index) + ":" + str(block_end_line_index))
+                print()
             
             if info:
                 breaking_changes_info.append(info)
@@ -87,21 +105,21 @@ def extract_breaking_change_info(lines):
     # print(lines)
     breaking_change_info = {}
     
-    what_line_index = get_end_of_block(lines, 0, "## What")
+    what_line_index = get_end_of_block_using_pattern(lines, 0, "## What")
     
     if what_line_index >= len(lines): 
         raise LookupError('"## What" not found')
     
     breaking_change_info['affected_file_path'] = get_affected_file_path(lines[what_line_index])
     
-    why_line_index = get_end_of_block(lines, what_line_index + 1, "## Why")
+    why_line_index = get_end_of_block_using_pattern(lines, what_line_index + 1, "## Why")
     
     if why_line_index >= len(lines):
         raise LookupError('"## Why" not found')
     
     breaking_change_info['what_info'] = "\n".join(lines[what_line_index + 1:why_line_index]).rstrip('\r\n')
     
-    alternatives_line_index = get_end_of_block(lines, why_line_index + 1, "## Alternatives")
+    alternatives_line_index = get_end_of_block_using_pattern(lines, why_line_index + 1, "## Alternatives")
     
     breaking_change_info['why_info'] = "\n".join(lines[why_line_index + 1: alternatives_line_index]).rstrip('\r\n')
     
@@ -161,6 +179,8 @@ while i <= len(interesting_indexes) - 2:
         if hash in breaking_changes_info or (liferay_portal_ee_repo.is_ancestor(start_hash, hash) and not liferay_portal_ee_repo.is_ancestor(end_hash, hash)):
             amended_message = parsed[interesting_indexes[i + 1][0]]['text']
             breaking_changes_info[hash] = decorate_breaking_change_info(dissect_commit_message(amended_message), {'committed_date': liferay_portal_ee_repo.commit(hash).committed_date})
+            
+            print("Amending: " + str(breaking_changes_info[hash][0]['jira_ticket']))
         
         i += 2
     else:
