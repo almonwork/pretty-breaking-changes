@@ -180,7 +180,13 @@ while i <= len(interesting_indexes) - 2:
             amended_message = parsed[interesting_indexes[i + 1][0]]['text']
             breaking_changes_info[hash] = decorate_breaking_change_info(dissect_commit_message(amended_message), {'committed_date': liferay_portal_ee_repo.commit(hash).committed_date})
             
-            print("Amending: " + str(breaking_changes_info[hash][0]['jira_ticket']))
+            
+            if len(breaking_changes_info[hash]) > 0:
+                print("Amending: " + str(breaking_changes_info[hash][0]['jira_ticket']))
+            else:
+                print("Error processing amendment message " + hash)
+                print(amended_message)
+                print()
         
         i += 2
     else:
